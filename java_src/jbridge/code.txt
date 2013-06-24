@@ -1,0 +1,70 @@
+// f_super : FIELD_OBJECT_SUPERCLASS
+// f_id : FIELD_OBJECT_ID
+// f_mfinder : FIELD_METHOD_FINDER
+// f_session : FIELD_SESSION_MANAGER
+// f_impl_prefix : FIELD_IMPL_FLAG_PREFIX
+// m_org_prefix : METHOD_ORG_PREFIX
+// m_send : METHOD_SEND_MESSAGE
+// m_super : METHOD_SUPERCLASS_METHOD
+// m_inject : METHOD_INJECT_FIELDS
+
+#### ImplFlagField
+public boolean %f_impl_prefix%%name% = false;
+
+#### SuperClassField
+public final String %f_super% = "%name%";
+
+#### MethodFinderField
+private jbridge.MethodFinder2 %f_mfinder% = null;
+
+#### SessionManagerField
+private jbridge.SessionManager %f_session% = null;
+
+#### IdField
+private Object %f_id% = null;
+
+#### InjectMethod
+public void %m_inject%(Object k,jbridge.SessionManager br,jbridge.MethodFinder2 mf) {
+	%f_id% = k;
+	%f_session% = br;
+	%f_mfinder% = mf;
+}
+
+#### SendMessage
+public Object %m_send%(String message, Object[] args, Class rt) {
+	return %f_session%.overrideCall(%f_id%, message, args, rt);
+}
+
+#### OverrideMethod_check
+if (!%f_impl_prefix%%name%) {
+   return ($r)super.%name%($$);
+}
+
+#### OverrideMethod_return
+{
+	%check%
+	return ($r)%m_send%("%name%", $args, $type);
+}
+
+#### SuperCaller
+public Object %m_super%(String message, Object[] args) {
+	Class sc = this.getClass();
+	if (sc == null) {
+		throw new RuntimeException("Not found superclass: "+sc.getClass().getName());
+	}
+	java.lang.reflect.Method m = %f_mfinder%.searchAllMethod(sc, message, args);
+	if (m == null) {
+	   throw new RuntimeException("Not found the method ["+message+"] in the superclass.");
+	}
+	return m.invoke(this,args);
+}
+
+#### SuperConstructor
+{
+	super($$);
+}
+
+#### OriginalMethod
+{
+	return ($r)super.%name%($$);
+}

@@ -1,0 +1,143 @@
+= BStream Specification
+
+== Elemental Data Structure
+
+The byte order in the BStream is little endian.
+
+The elemental data structure is written by BNF like notation as follows:
+
+DATA  ::= 
+		NULL
+	  | BOOLEAN
+	  | INTEGER1
+	  | INTEGER2
+	  | INTEGER4
+	  | INTEGER8
+	  | FLOAT
+	  | DOUBLE
+	  | DECIMAL
+	  | STRING
+	  | ARRAY
+	  | LIST 
+	  | HASH
+
+NULL ::= NULL_ID
+BOOLEAN ::= BOOLEAN_ID BOOLEAN_VALUE 
+INTEGER1 ::= INTEGER1_ID BYTE
+INTEGER2 ::= INTEGER2_ID BYTE2
+INTEGER4 ::= INTEGER4_ID BYTE4
+INTEGER8 ::= INTEGER8_ID BYTE8
+FLOAT ::= FLOAT_ID BYTE4
+DOUBLE ::= DOUBLE_ID BYTE8
+DECIMAL ::= DECIMAL_ID BYTE_NUM
+STRING ::= STRING_ID BYTE_NUM
+
+ARRAY ::= ARRAY_ID
+		[
+		    FIXED_TYPE_ID LENGTH ( BYTE )*
+		  | DYNAMIC_TYPE_ID LENGTH ( BYTE_NUM )*
+		  | NULL LENGTH
+        ]
+
+LIST ::= LIST_ID LENGTH ( DATA )*
+
+HASH ::= HASH_ID LENGTH ( HASH_KEY HASH_VALUE )*
+HASH_KEY ::= DATA
+HASH_VALUE ::= DATA
+
+BYTE2 ::= (BYTE)2
+BYTE4 ::= (BYTE)4
+BYTE8 ::= (BYTE)8
+BYTE_NUM ::= LENGTH ( BYTE )*
+LENGTH ::= BYTE4
+
+TYPE ID ::= 
+	    BOOLEAN_ID
+	  | INTEGER1_ID 
+	  | INTEGER2_ID 
+	  | INTEGER4_ID 
+	  | INTEGER8_ID 
+	  | FLOAT_ID 
+	  | DOUBLE_ID 
+	  | DECIMAL_ID 
+	  | STRING_ID
+	  | ARRAY_ID 
+	  | LIST_ID 
+	  | HASH_ID
+
+FIXED_TYPE_ID ::= 
+	    BOOLEAN_ID
+	  | INTEGER1_ID 
+	  | INTEGER2_ID 
+	  | INTEGER4_ID 
+	  | INTEGER8_ID 
+	  | FLOAT_ID 
+	  | DOUBLE_ID 
+
+DYNAMIC_TYPE_ID ::= DECIMAL_ID | STRING_ID
+
+NULL_ID ::= 0x10
+INTEGER1_ID ::= 0x11
+INTEGER2_ID ::= 0x12
+INTEGER4_ID ::= 0x13
+INTEGER8_ID ::= 0x14
+FLOAT_ID ::= 0x15
+DOUBLE_ID ::= 0x16
+DECIMAL_ID ::= 0x17
+STRING_ID ::= 0x18
+ARRAY_ID ::= 0x19
+LIST_ID ::=  0x1a
+HASH_ID ::= 0x1d
+
+BOOLEAN_ID ::= 0x1b
+BOOLEAN_VALUE ::= BOOLEAN_TRUE | BOOLEAN_FALSE 
+BOOLEAN_TRUE ::= 0x1b
+BOOLEAN_FALSE ::= 0x1c
+
+Note that the array can hold only primitive values.
+
+== Message Structure
+
+=== Abstract message structure
+
+The BStream has two message types: calling message and response message.
+The both messages are expressed by following lines.
+
+MESSAGE ::= MESSAGE_TYPE LENGTH ( BYTE )*
+
+MESSAGE_TYPE ::= M_CALL | M_RETURN
+
+M_CALL ::= 0x00
+M_RETURN ::= 0x01
+
+The byte sequence at the last of message structure is the message body.
+The message body is described in the subsequence sections.
+
+=== Calling message structure
+
+MESSAGE_BODY ::= SESSION_ID METHOD_NAME ARGUMENT_LIST
+
+SESSION_ID ::= INTEGER4
+METHOD_NAME ::= STRING
+ARGUMENT_LIST ::= LIST
+
+The SESSION_ID is the unique number. The number is used in the response message.
+
+=== Response message structure
+
+MESSAGE_BODY ::= SESSION_ID RESULT_ID RESULT_VALUE
+
+RESULT_ID ::= R_OK | R_POTOCOL_ERROR | R_APP_ERROR | R_FATAL_ERROR
+RESULT_VALUE ::= DATA
+
+R_OK ::= 0x20
+R_POTOCOL_ERROR ::= 0x21
+R_APP_ERROR ::= 0x22
+R_FATAL_ERROR ::= 0x23
+
+The RESULT_ID indicates whether the remote method calling succeed or not.
+
+R_OK : finished normally.
+R_APP_ERROR : the remote application threw an exception.
+R_POTOCOL_ERROR : some error was occurred during the BStream operation, such as I/O error, duplication of session id, wrong protocol and so on.
+R_FATAL_ERROR : some fatal error was occurred, such as out of memory.

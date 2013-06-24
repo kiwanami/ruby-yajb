@@ -1,0 +1,95 @@
+2006-09-18  SAKURAI Masashi  <m.sakurai@dream.com>
+
+	* Version 0.9.0
+	
+	* ruby_src/yajb.rb: Changed require path: yajb/jbridge => yajb.
+
+	* ruby_src/jbridge: Bug fixed and added new functions.
+	1) Improved CLASSPATH handling. 
+	2) Added registering custom class loader.
+	3) Avoided stalling on ruby-mswin. (Changed default option, :jvm_stdout => :never)
+	4) Fixed NoMethodError on exiting.
+
+	* ruby_src/inourpc.rb: Replaced bstream.rb by inourpc.rb.
+	
+	* java_src/jbridge/MethodFinder2.java: Bug fixed: Can not find final methods.
+	
+	* java_src/...: ccs2.jar was replaced by inou-rpc and log4j libraries.
+	* java_lib/inourpc.jar
+	* java_lib/inouutils.jar
+	* java_lib/log4j-1.2.12.jar
+
+	* ruby_src: Changed directory configuration.
+
+2005-09-05  SAKURAI Masashi  <m.sakurai@dream.com>
+
+	* Version 0.8.1
+
+	* ruby/jbridge.rb: Bug fixed:
+	1) Can not show STDOUT from JVM more than 2 lines.
+	2) Java stalls because the stdout buffer between java and ruby is full.
+	The default option JBRIDGE_OPTIONS[:jvm_stdout] is not nil from this version.
+
+2005-08-11  SAKURAI Masashi  <m.sakurai@dream.com>
+
+	* Version 0.8.0
+
+	* ruby_src/jbridge.rb: Added showing STDOUT from JVM. If
+	JBRIDGE_OPTIONS[:jvm_stdout] is not nil, the lines of STDOUT from
+	JVM are transfered to ruby's STDOUT.
+	Improved JObject#inspect.
+
+	* ruby/bstream.rb: Bug fixed: can't send the empty array and the
+	array that consists of nil.
+
+	* java_src/jbridge/comm/binstream/EncoderTest.java: Ditto.
+
+	* java_src/jbridge/comm/binstream/DecodeHandlerClass.java: Ditto.
+
+	* java_src/jbridge/comm/binstream/DecodeHandlerClass2.java: Ditto.
+
+	* java_src/jbridge/comm/binstream/IDecodeHandler.java: Ditto.
+
+	* java_src/jbridge/comm/binstream/BinDecoder.java: Ditto.
+
+	* java_src/jbridge/MethodFinder2.java (MethodFinder2): Bug fixed:
+	can't find the methods with conversion of losing precision.
+
+	* java_src/jbridge/ClassFinder.java (ClassFinder): Bug fixed:
+	can't find primitive types.
+
+	* java_src/jbridge/ObjectManagerTest.java (ObjectManagerTest):
+	Added a test of MethodFinder2.
+
+2005-08-07  SAKURAI Masashi  <m.sakurai@dream.com>
+
+	* Version 0.7.0
+	* some bug fixed (method and constructor searching depended on Class#getDeclaredMethods order.)
+
+2005-08-02  SAKURAI Masashi  <m.sakurai@dream.com>
+
+	* Version 0.6.0
+	* modified Object#methods for completion of irb.
+	* added the JExtendedClass#jdef method for the implementation by block.
+	* some bug fixed (wrong classpath separator for ruby on cygwin and float data handling)
+	* refactored some classes
+	* append some documents to jbridge.rb
+
+2005-07-19  SAKURAI Masashi  <m.sakurai@dream.com>
+
+	* Version 0.5.0
+	* improved :bstream driver.
+	* implemented GC.
+	* added jlambda utility.
+	* many bugs were fixed.
+
+2005-07-8   SAKURAI Masashi  <m.sakurai@dream.com>
+
+	* Version 0.4.0
+	* added :bstream, the faster driver
+	* many bugs were fixed.
+
+2005-06-22  SAKURAI Masashi  <m.sakurai@dream.com>
+
+	* Version 0.3.0
+	* first release

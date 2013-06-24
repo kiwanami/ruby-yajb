@@ -1,0 +1,148 @@
+Java方向、Ruby方向
+
+■XMLRPCプロトコル
+○Java側
+
+・Type and Value （基本データ型）
+　・Z:boolean, B:byte, C:char, S:short, I:int, J:long, F:float, String
+　・これ以外はオブジェクトIDとして管理される
+
+・Typed array (明示的型付け配列)
+　・[(type symbol string), (values as string)...]
+
+・[proxy ID] = new([fqcn],[values])
+・[proxy ID] = static([class name])
+
+・[proxy ID] = extends([fqcns], [values])
+・impl([proxy ID],[method name], [override flag])
+
+・[fqcn] = classname([proxy ID])
+・[classinfo] = classinfo([fqcn])
+
+・[value] = ref([proxy ID],[field name])
+・set([proxy ID],[field name],[value])
+
+・[value] = call([proxy ID],[method name],[values])
+・[value] = callsuper([proxy ID],[method name],[values])
+
+・[value] = sessionCall([message],[arguments])
+
+・unlink([proxy ID])
+
+・addClassLoader([proxy ID])
+・removeClassLoader([proxy ID])
+
+・exit()
+・dump()
+
+○Ruby側
+		
+・[value] = call([session ID],[proxy ID],[values])
+
+■引数仕様
+・ProxyオブジェクトであればJavaのオブジェクトが代入される
+・基本型はなるべくそのまま
+
+■Ruby版 JavaBridge API 仕様
+
+○jnew
+・concrete classのインスタンス生成
+・識別IDはJava側が生成して返す
+・Ruby側はプロキシクラスを生成して返す
+
+○jextends
+・abstract classやinterfaceの仮実装クラスを生成
+　・仮実装はすべてRuby側の呼び出しを行う
+　・特異メソッドでオーバーライドするとJava側にオーバーライドされたことを
+　　通知して、そのメソッドへの以後の呼び出しをRubyで処理することが出来る
+
+○jstatic
+・クラスへの静的参照を生成
+
+○jimport
+・Javaと同じようにimport指定が出来る。
+　・import "java.awt.*"
+　・import "java.awt.*,java.awt.event.*"
+　・import "java.util.List"
+・後に指定されたものが優先される
+
+○ stop_thread
+・メインスレッドを通信スレッドにjoinさせて、Javaからの通信を待ち続ける。
+・止めるには wakeup_thread する。
+
+○ break_bridge
+・Java側にJVM停止メッセージを送って通信を止める。
+
+○引数での配列
+・普通に配列を渡した場合、配列のタイプをチェックして全て一致している場合は
+　そのタイプの配列を作って値を格納する。
+　一致していない場合は Object 型の配列に格納する。
+・配列の最初に型シンボルを入れておくと、その型に対応した primitive 型の
+　配列を作って格納する
+
+■メモ
+
+・同じ名前のメソッドはまとめてオーバーライドされる
+・finalなメソッドはオーバーライドできないが、置き換えメソッドだけは作っておく。
+・JavaのスレッドAで呼び出されたブロック内でJavaのメソッドを呼ぶとき、スレッドAを使ってJavaの呼び出しを行う。
+・数値系の引数や帰り値は、動的に型を推定して自動で変換して適当なメソッドを探す。
+・Rubyでオーバーライドしたとき、返り値に意図しない値が設定されないようにする。
+・オブジェクトのクラスがpublicでない場合は、publicメソッドであっても呼べない。
+・JavassistのCtNewMethodで作ったMethodは、シグニチャが同じであれば hashCode は同じ値を返し、 equals は true を返す。ちなみに、 == はfalseを返す。
+・__id__ は時間が経つと他のオブジェクトになるらしい
+・StringIO は、Linuxでは何度も rewind して再利用すると落ちる
+・高速化はあんまり効かない（if・case文をtableに、スレッドプール）
+・ストリームのバッファリングはかなり効く
+・ThreadPoolは多少効く。負荷が高くなると良く効く。
+・うちと原理が一緒な PHP/Java bridge もよくできている。標準規格との整合性も考えてあって、うちよりもちゃんとした人が作っているみたい。 session変数というのがPHP的で素敵。
+  http://php-java-bridge.sourceforge.net/
+
+■セキュリティ
+
+まずはshare
+
+・share と sandbox
+・share：
+　・ObjectManagerを共有
+・sandbox：
+　・接続IDごとにObjectManagerを共有
+　・System関数にはアクセスできない（SecurityManagerを使う？）
+
+■メソッド検索のアルゴリズム
+
+○全体戦略
+・メソッド、コンストラクタ検索
+　・名前からメソッド一覧を見つける（優先順位はスーパークラスほど下がる）
+　・publicメソッド
+　　・クラスもメソッドもstaticでなくて、publicなもの
+　・allメソッド
+　　・クラスがpublicでメソッドがstaticでなくて、public,protectedなもの
+　・staticメソッド
+　　・クラスがpublicでメソッドがstaticなもの
+　・コンストラクタも一覧を作る
+・引数情報のみの配列で考える
+・引数の数で却下
+・変換候補変数用意：△のもの
+　・引数の数だけ変換アルゴリズム
+・一覧でループ
+　・ret = ○
+　・引数の配列でループ
+　　・値がnull
+　　　・引数がprimitiveは break ×
+　　　・引数がprimitiveでなければ continue ○、スルー
+　　・以下はHash？
+　　・引数がboolean型で、値もBooleanかbooleanなら continue ○、スルー
+　　・引数が数値型
+　　　・同型なら○、スルー
+　　　・問題なく変換できるのなら○、変換アルゴリズム
+　　　・変換が必要なら△、変換アルゴリズム
+　　・break ×
+　・ret==×なら next
+　・ret==○なら変換実行して帰る
+　・ret==△なら保存領域に入れて次へ
+・保存領域の候補を使って変換実行して帰る
+
+○ハッシュの戦略
+・クラス名,メソッド名(,値のクラス名)*
+
+

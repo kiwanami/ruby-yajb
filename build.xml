@@ -1,0 +1,208 @@
+<?xml version="1.0" ?>
+
+<project name="java_bridge" default="compile" basedir=".">
+
+  <property name="version" value="0.8.1"/>
+  <property name="package.rubyname" value="yajb"/>
+  <property name="package.jarname" value="yajb.jar"/>
+
+  <property name="package.dir" value="package"/>
+  <property name="installer.dir" value="release"/>
+
+  <property name="jdest.dir" value="java_bin"/>
+  <property name="jsrc.dir" value="java_src"/>
+  <property name="jlib.dir" value="java_libs"/>
+  <property name="ruby.dir" value="ruby_src"/>
+
+  <property name="inouutils.src" value="java_libs/inouutils_src.tar.gz"/>
+  <property name="inouutils" value="inouutils.jar"/>
+  <property name="inourpc.src" value="java_libs/inourpc_src.tar.gz"/>
+  <property name="inourpc" value="inourpc.jar"/>
+
+  <property name="log4j" value="log4j-1.2.12.jar"/>
+  <property name="xmlrpc" value="xmlrpc-2.0.jar"/>
+  <property name="xml1" value="xmlParserAPIs.jar"/>
+  <property name="xml2" value="xercesImpl.jar"/>
+  <property name="codec" value="commons-codec-1.3.jar"/>
+  <property name="javassist" value="javassist.jar"/>
+
+  <path id="compile.classpath">
+    <pathelement path="${jlib.dir}/${log4j}"/>
+    <pathelement path="${jlib.dir}/${xmlrpc}"/>
+    <pathelement path="${jlib.dir}/${inourpc}"/>
+    <pathelement path="${jlib.dir}/${inouutils}"/>
+    <pathelement path="${jlib.dir}/${javassist}"/>
+  </path>
+
+  <path id="run.classpath">
+    <pathelement path="${jdest.dir}"/>
+    <path refid="compile.classpath"/>
+    <pathelement path="${jlib.dir}/${xml1}"/>
+    <pathelement path="${jlib.dir}/${xml2}"/>
+    <pathelement path="${jlib.dir}/${codec}"/>
+  </path>
+
+  <target name="prepare">
+    <available property="junit.present" classname="junit.framework.TestCase"/>
+    <mkdir dir="${jdest.dir}"/>
+    <copy todir="${jdest.dir}">
+      <fileset dir="${jsrc.dir}">
+        <include name="**/*.txt"/>
+        <include name="**/*.properties"/>
+      </fileset>
+    </copy>
+  </target>
+
+<!-- ###[ BUILD ]##################################################### -->
+
+  <target name="compile" depends="prepare">
+    <javac srcdir="${jsrc.dir}" destdir="${jdest.dir}" excludes="**/*Test.java,**/*TestSuite.java" debug="true">
+	  <classpath>
+        <path refid="compile.classpath"/>
+	  </classpath>
+    </javac>
+  </target>
+
+  <target name="compile.test" depends="compile">
+    <javac srcdir="${jsrc.dir}" destdir="${jdest.dir}" includes="**/*Test.java,**/*TestSuite.java" debug="true">
+	  <classpath>
+        <path refid="compile.classpath"/>
+	  </classpath>
+    </javac>
+  </target>
+
+  <target name="jar" depends="compile">
+    <manifest file="manifest.txt">
+      <attribute name="Main-Class" value="jbridge.BridgeBuilder"/>
+      <attribute name="Class-Path" value="${log4j} ${inouutils} ${inourpc} ${xmlrpc} ${xml1} ${xml2} ${codec} ${javassist}"/>
+    </manifest>
+    <jar manifest="manifest.txt" jarfile="${package.jarname}" basedir="${jdest.dir}"/>
+    <delete file="manifest.txt"/>
+  </target>
+
+  <target name="package" depends="jar">
+    <mkdir dir="${package.dir}/${package.rubyname}"/>
+    <copy todir="${package.dir}/${package.rubyname}">
+      <fileset dir="${jlib.dir}">
+        <include name="*.jar"/>
+      </fileset>
+    </copy>
+    <copy file="${package.jarname}" todir="${package.dir}/${package.rubyname}"/>
+    <copy todir="${package.dir}/${package.rubyname}">
+      <fileset dir="${ruby.dir}">
+        <include name="*.rb"/>
+        <exclude name="${package.rubyname}.rb"/> <!-- yajb.rb -->
+      </fileset>
+    </copy>
+    <copy file="${ruby.dir}/${package.rubyname}.rb" todir="${package.dir}"/> <!-- yajb.rb -->
+  </target>
+
+<!-- ###[ CLEAN ]##################################################### -->
+
+  <target name="clean" depends="prepare">
+    <delete dir="${package.dir}"/>
+    <delete dir="${installer.dir}"/>
+    <delete dir="${jdest.dir}"/>
+    <delete file="${package.jarname}"/>
+    <delete file="TEST-jbridge.JavaBridgeTestSuite.txt"/>
+    <delete dir="rdoc"/>
+  </target>
+
+<!-- ###[ INSTALLATION PACKAGE ]##################################################### -->
+
+  <target name="make-installer" depends="rdoc,package">
+    <mkdir dir="${installer.dir}"/>
+    <mkdir dir="${installer.dir}/lib/${package.rubyname}"/>
+    <mkdir dir="${installer.dir}/doc"/>
+    <mkdir dir="${installer.dir}/sample"/>
+    <mkdir dir="${installer.dir}/test"/>
+    <copy todir="${installer.dir}/lib/${package.rubyname}">
+      <fileset dir="${package.dir}/${package.rubyname}"/>
+    </copy>
+    <copy file="${package.dir}/${package.rubyname}.rb" todir="${installer.dir}/lib"/> <!-- yajb.rb -->
+    <copy todir="${installer.dir}/doc/">
+      <fileset dir="rdoc" includes="**/*"/>
+    </copy>
+    <copy todir="${installer.dir}/test">
+      <fileset dir="${ruby.dir}/test">
+	    <include name="*.rb"/>
+	  </fileset>
+    </copy>
+    <copy todir="${installer.dir}/sample/">
+      <fileset dir="sample" includes="*.rb"/>
+    </copy>
+	<copy todir="${installer.dir}/">
+      <fileset dir=".">
+	    <include name="setup.rb"/>
+	    <include name="*-License.*"/>
+	    <include name="README.*"/>
+	    <include name="ChangeLog"/>
+	  </fileset>
+	</copy>
+  </target>
+
+<!-- ###[ DOCUMENT ]##################################################### -->
+
+  <target name="rdoc" depends="prepare">
+    <exec dir="." executable="sh.exe" os="Windows XP">
+      <arg line="-c 'rdoc --op rdoc --include ${ruby.dir} --exclude yajb* --exclude ${installer.dir} --exclude ${package.dir} --exclude setup.rb --exclude sample --exclude ${ruby.dir}/test --exclude ${ruby.dir}/tools --main JavaBridge'"/>
+    </exec>
+    <exec dir="." executable="rdoc1.8" os="Linux">
+      <arg line="--op rdoc --include ${ruby.dir} --exclude yajb* --exclude ${installer.dir} --exclude ${package.dir} --exclude setup.rb --exclude sample --exclude ${ruby.dir}/tools --main JavaBridge"/>
+    </exec>
+  </target>
+
+<!-- ###[ TEST ]##################################################### -->
+
+  <target name="test-bs" depends="compile.test">
+    <junit printsummary="yes" fork="true" haltonfailure="false">
+      <classpath>
+        <path refid="run.classpath"/>
+      </classpath>
+      <formatter type="plain"/>
+      <test name="jbridge.JavaBridgeTestSuite"/>
+    </junit>
+  </target>
+
+  <target name="test-tmp" depends="compile.test">
+    <junit printsummary="yes" fork="true" haltonfailure="false">
+      <classpath>
+        <path refid="run.classpath"/>
+      </classpath>
+      <formatter type="plain"/>
+      <test name="jbridge.MethodFinderTest"/>
+    </junit>
+  </target>
+
+  <target name="run-jb-xmlrpc" depends="compile">
+    <java classname="jbridge.BridgeBuilder"  fork="true">
+    <arg value="jbridge.comm.xmlrpc.XMLRPC_JBServer"/>
+    <arg value="-logLevel:verbose"/>
+      <classpath>
+        <path refid="run.classpath"/>
+	  </classpath>
+    </java>
+  </target>
+
+  <target name="run-jb-bs" depends="compile">
+    <java classname="jbridge.BridgeBuilder"  fork="true">
+    <arg value="jbridge.comm.binstream.BStream_JBServer"/>
+    <arg value="-remoteport:9999"/>
+    <arg value="-logLevel:verbose"/>
+      <classpath>
+        <path refid="run.classpath"/>
+	  </classpath>
+    </java>
+  </target>
+
+  <target name="run-bsecho" depends="compile">
+    <java classname="jbridge.comm.binstream.BinServer"  fork="true">
+      <arg value="9999"/>
+      <arg value="verbose"/>
+      <classpath>
+        <path refid="run.classpath"/>
+      </classpath>
+    </java>
+  </target>
+
+</project>
